@@ -1,6 +1,10 @@
-import 'package:injectable/injectable.dart';
 import 'package:dio/dio.dart';
-import 'package:movies_app/data/services/api_service.dart';
+import 'package:injectable/injectable.dart';
+
+import '../data/repositories/movie_repository.dart';
+import '../data/services/api_service.dart';
+import '../domain/usecases/search_movie.dart';
+import '../presentation/blocs/movie_search/movie_search_bloc.dart';
 
 @module
 abstract class RegisterModule {
@@ -8,5 +12,14 @@ abstract class RegisterModule {
   Dio get dio => Dio();
 
   @lazySingleton
-  ApiService provideApiService(Dio dio) => ApiService(dio);  // Registers the generated _ApiService
+  ApiService provideApiService(Dio dio) => ApiService(dio);
+
+  @lazySingleton
+  MovieRepository provideMovieRepository(ApiService apiService) => MovieRepository(apiService);
+
+  @lazySingleton
+  SearchMovies provideSearchMovies(MovieRepository movieRepository) => SearchMovies(movieRepository);
+
+  @factoryMethod
+  MovieSearchBloc provideMovieSearchBloc(SearchMovies searchMovies) => MovieSearchBloc(searchMovies: searchMovies.call);
 }
