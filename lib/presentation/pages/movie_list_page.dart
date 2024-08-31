@@ -18,102 +18,113 @@ class _MovieListPageState extends State<MovieListPage> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
 
+  void _onSearchSubmitted(String query) {
+    if (query.isNotEmpty) {
+      setState(() {
+        _isSearching = true;
+      });
+      context.read<MovieSearchBloc>().add(SearchMovies(query));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: TextField(
-          controller: _searchController,
-          textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(
-            hintText: 'Search Movies...',
-            border: InputBorder.none,
-            suffixIcon: IconButton(
-              icon: Icon(Icons.search),
-              onPressed: () {
-                if (_searchController.text.isNotEmpty) {
-                  setState(() {
-                    _isSearching = true;
-                  });
-                  context.read<MovieSearchBloc>().add(SearchMovies(_searchController.text));
+      appBar: _buildAppBar(),
+      body: _isSearching ? _buildSearchResults() : _buildMovieList(),
+    );
+  }
 
-                }
-              },
-            ),
+  AppBar _buildAppBar() {
+    return AppBar(
+      title: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search Movies...',
+          border: InputBorder.none,
+          suffixIcon: IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () => _onSearchSubmitted(_searchController.text),
           ),
-          onChanged: (query) {
-            if (query.isNotEmpty) {
-              setState(() {
-                _isSearching = true;
-              });
-              context.read<MovieSearchBloc>().add(SearchMovies(_searchController.text));
-            }
-          },
         ),
-      ),
-      body: _isSearching
-          ? BlocBuilder<MovieSearchBloc, MovieSearchState>(
-        builder: (context, state) {
-          if (state is MovieSearchLoading) {
-            return Center(child: CircularProgressIndicator());
-          } else if (state is MovieSearchLoaded) {
-            return _buildMovieList(state.movies);
-          } else if (state is MovieSearchError) {
-            return Center(child: Text('Failed to load movies'));
-          }
-          return Center(child: Text('Start searching for movies'));
-        },
-      )
-          : BlocBuilder<MovieListBloc, MovieListState>(
-        builder: (context, state) {
-          if (state is MovieListLoading) {
-            return Center(child: CircularProgressIndicator());
-          } else if (state is MovieListLoaded) {
-            return _buildMovieList(state.movies);
-          } else if (state is MovieListError) {
-            return Center(child: Text('Failed to load movies'));
-          }
-          return Container();
-        },
+        onChanged: _onSearchSubmitted,
       ),
     );
   }
 
-  Widget _buildMovieList(List<Movie> movies) {
+  Widget _buildSearchResults() {
+    return BlocBuilder<MovieSearchBloc, MovieSearchState>(
+      builder: (context, state) {
+        if (state is MovieSearchLoading) {
+          return _buildLoadingIndicator();
+        } else if (state is MovieSearchLoaded) {
+          return _buildMovieGrid(state.movies);
+        } else if (state is MovieSearchError) {
+          return _buildErrorText('Failed to load movies');
+        }
+        return _buildPlaceholderText('Start searching for movies');
+      },
+    );
+  }
 
+  Widget _buildMovieList() {
+    return BlocBuilder<MovieListBloc, MovieListState>(
+      builder: (context, state) {
+        if (state is MovieListLoading) {
+          return _buildLoadingIndicator();
+        } else if (state is MovieListLoaded) {
+          return _buildMovieGrid(state.movies);
+        } else if (state is MovieListError) {
+          return _buildErrorText('Failed to load movies');
+        }
+        return Container();
+      },
+    );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Center(child: CircularProgressIndicator());
+  }
+
+  Widget _buildErrorText(String message) {
+    return Center(child: Text(message));
+  }
+
+  Widget _buildPlaceholderText(String message) {
+    return Center(child: Text(message));
+  }
+
+  Widget _buildMovieGrid(List<Movie> movies) {
     if (movies.isEmpty) {
-      return Center(
-        child: Text(
-          'No movies found',
-          style: TextStyle(fontSize: 18),
-        ),
-      );
+      return _buildPlaceholderText('No movies found');
     }
+    final screenWidth = MediaQuery.of(context).size.width;
 
-    return Center(
-      child: GridView.builder(
+    int crossAxisCount = screenWidth > 600 ? 4 : 2; // 4 for tablets, 2 for mobile
+
+
+    return GridView.builder(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 2,  // Number of columns
-      crossAxisSpacing: 4.0,  // Spacing between columns
-      mainAxisSpacing: 4.0,  // Spacing between rows
-      childAspectRatio: 0.6,  // Aspect ratio for each item (width / height)
-    ),
-    itemCount: movies.length,
-    itemBuilder: (context, index) {
-    final movie = movies[index];
-    return GestureDetector(
-    onTap: () {
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 4.0,
+        mainAxisSpacing: 4.0,
+        childAspectRatio: 0.6,
+      ),
+      itemCount: movies.length,
+      itemBuilder: (context, index) {
+        final movie = movies[index];
+        return GestureDetector(
+          onTap: () => _navigateToMovieDetails(movie),
+          child: MovieCard(movie: movie),
+        );
+      },
+    );
+  }
+
+  void _navigateToMovieDetails(Movie movie) {
     Navigator.push(
-    context,
-    MaterialPageRoute(
-    builder: (context) => MovieDetailsPage(movie: movie),
-    ),
-    );
-    },
-    child: MovieCard(movie: movie),
-    );
-    },
-    ),
+      context,
+      MaterialPageRoute(builder: (context) => MovieDetailsPage(movie: movie)),
     );
   }
 }

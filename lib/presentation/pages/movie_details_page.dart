@@ -17,9 +17,14 @@ class MovieDetailsPage extends StatelessWidget {
         children: [
           CachedNetworkImage(
             imageUrl: 'https://image.tmdb.org/t/p/w500${movie.posterPath}',
-            fit: BoxFit.fitWidth,  // Ensures the image covers the space
-            placeholder: (context, url) => Center(child: CircularProgressIndicator()),  // Placeholder while loading
-            errorWidget: (context, url, error) => Icon(Icons.error),  // Error widget if image fails to load
+            fit: BoxFit.fitWidth,
+            placeholder: (context, url) => Center(child: CircularProgressIndicator()),
+            errorWidget: (context, url, error) => Icon(Icons.error),
+            imageBuilder: (context, imageProvider) => FadeInImage(
+              placeholder: AssetImage('assets/placeholder.png'), // Provide a local placeholder image
+              image: imageProvider,
+              fit: BoxFit.fitWidth,
+            ),
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
